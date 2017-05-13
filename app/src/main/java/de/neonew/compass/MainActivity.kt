@@ -52,34 +52,33 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event!!.sensor === accelerometer) {
-            lowPass(event!!.values, lastAccelerometer)
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor === accelerometer) {
+            lowPass(event.values, lastAccelerometer)
             lastAccelerometerSet = true
-        } else if (event!!.sensor === magnetometer) {
-            lowPass(event!!.values, lastMagnetometer)
+        } else if (event.sensor === magnetometer) {
+            lowPass(event.values, lastMagnetometer)
             lastMagnetometerSet = true
         }
 
         if (lastAccelerometerSet && lastMagnetometerSet) {
             val r = FloatArray(9)
-            SensorManager.getRotationMatrix(r, null, lastAccelerometer, lastMagnetometer)
+            if (SensorManager.getRotationMatrix(r, null, lastAccelerometer, lastMagnetometer)) {
+                val orientation = FloatArray(3)
+                SensorManager.getOrientation(r, orientation)
+                val degree = (toDegrees(orientation[0].toDouble()) + 360).toFloat() % 360
 
-            val orientation = FloatArray(3)
-            SensorManager.getOrientation(r, orientation)
-            val azimuthInRadians = orientation[0]
-            val azimuthInDegress = (toDegrees(azimuthInRadians.toDouble()) + 360).toFloat() % 360
+                val rotateAnimation = RotateAnimation(
+                        currentDegree,
+                        -degree,
+                        RELATIVE_TO_SELF, 0.5f,
+                        RELATIVE_TO_SELF, 0.5f)
+                rotateAnimation.duration = 1000
+                rotateAnimation.fillAfter = true
 
-            val rotateAnimation = RotateAnimation(
-                    currentDegree,
-                    -azimuthInDegress,
-                    RELATIVE_TO_SELF, 0.5f,
-                    RELATIVE_TO_SELF, 0.5f)
-            rotateAnimation.duration = 1000
-            rotateAnimation.fillAfter = true
-
-            image.startAnimation(rotateAnimation)
-            currentDegree = -azimuthInDegress
+                image.startAnimation(rotateAnimation)
+                currentDegree = -degree
+            }
         }
     }
 
