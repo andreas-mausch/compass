@@ -9,9 +9,10 @@ import android.hardware.SensorManager
 import android.hardware.SensorManager.SENSOR_DELAY_GAME
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.view.animation.Animation
+import android.view.animation.Animation.RELATIVE_TO_SELF
 import android.view.animation.RotateAnimation
 import android.widget.ImageView
+import java.lang.Math.toDegrees
 
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
@@ -53,10 +54,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event!!.sensor === accelerometer) {
-            System.arraycopy(event!!.values, 0, lastAccelerometer, 0, event.values.size)
+            lowPass(event!!.values, lastAccelerometer)
             lastAccelerometerSet = true
         } else if (event!!.sensor === magnetometer) {
-            System.arraycopy(event!!.values, 0, lastMagnetometer, 0, event.values.size)
+            lowPass(event!!.values, lastMagnetometer)
             lastMagnetometerSet = true
         }
 
@@ -67,19 +68,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val orientation = FloatArray(3)
             SensorManager.getOrientation(r, orientation)
             val azimuthInRadians = orientation[0]
-            val azimuthInDegress = (Math.toDegrees(azimuthInRadians.toDouble()) + 360).toFloat() % 360
+            val azimuthInDegress = (toDegrees(azimuthInRadians.toDouble()) + 360).toFloat() % 360
 
             val rotateAnimation = RotateAnimation(
                     currentDegree,
                     -azimuthInDegress,
-                    Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF,
-                    0.5f)
+                    RELATIVE_TO_SELF, 0.5f,
+                    RELATIVE_TO_SELF, 0.5f)
             rotateAnimation.duration = 1000
             rotateAnimation.fillAfter = true
 
             image.startAnimation(rotateAnimation)
             currentDegree = -azimuthInDegress
+        }
+    }
+
+    fun lowPass(input: FloatArray, output: FloatArray) {
+        val alpha = 0.05f
+
+        for (i in input.indices) {
+            output[i] = output[i] + alpha * (input[i] - output[i])
         }
     }
 }
